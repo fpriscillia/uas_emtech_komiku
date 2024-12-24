@@ -1,5 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <uses-permission android:name="android.permission.INTERNET" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.uas_emtech_comic">>
     <application
         android:label="uas_emtech_comic"
         android:name="${applicationName}"

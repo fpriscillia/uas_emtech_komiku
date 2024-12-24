@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'package:uas_emtech_comic/screen/register.dart';
 import '../main.dart';
 
 class MyLogin extends StatelessWidget {
@@ -127,11 +128,34 @@ class _LoginState extends State<Login> {
                 ),
               ),
             )),
+        Padding(
+            padding: const EdgeInsets.only(top: 30),
+            child: Container(
+              height: 50,
+              width: 340,
+              decoration:
+                  BoxDecoration(borderRadius: BorderRadius.circular(20)),
+              child: ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor:
+                      MaterialStateProperty.all<Color>(Colors.deepPurple),
+                  foregroundColor:
+                      MaterialStateProperty.all<Color>(Colors.white),
+                ),
+                onPressed: () {
+Navigator.push(context, MaterialPageRoute(builder: (context) => const Register()));
+                },
+                child: const Text(
+                  'Register',
+                  style: TextStyle(fontSize: 25),
+                ),
+              ),
+            )),
         SizedBox(
           height: 100,
         ),
         Text(
-          "Project by: 160721036 160721022",
+          "Project by \n160721036 - Trevin Terrence Timisela \n160721022 - Fransisca Priscillia",
           style: TextStyle(color: Colors.black54),
         )
       ]),
