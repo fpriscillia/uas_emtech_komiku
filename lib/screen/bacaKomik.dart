@@ -15,30 +15,44 @@ class Baca extends StatefulWidget {
 }
 
 class _BacaState extends State<Baca> {
-  late Future<List<Content>> _comicPages;
+  List<Content> _comicPages = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
-    _comicPages = getContentList(widget.comicId);
+    super.initState();
+    getContentList(widget.comicId);
   }
 
-  Future<List<Content>> getContentList(int comicId) async {
-    final response = await http.post(
+  Future<void> getContentList(int comicId) async {
+    try {
+      final response = await http.post(
         Uri.parse("https://ubaya.xyz/flutter/160721022/uas_komiku/content.php"),
-        body: {'comic_id': widget.comicId.toString()});
+        body: {'comic_id': comicId.toString()},
+      );
 
-    if (response.statusCode == 200) {
-      final jsonData = json.decode(response.body);
-
-      if (jsonData['result'] == 'success') {
-        return (jsonData['data'] as List)
-            .map((item) => Content.fromJson(item))
-            .toList();
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['result'] == 'success') {
+          setState(() {
+            _comicPages = (jsonData['data'] as List).map((item) => Content.fromJson(item)).toList();
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _errorMessage = jsonData['message'];
+            _isLoading = false;
+          });
+        }
       } else {
-        throw Exception(jsonData['message']);
+        throw Exception('Failed to load comic pages');
       }
-    } else {
-      throw Exception('Failed to load comic pages');
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
@@ -48,36 +62,26 @@ class _BacaState extends State<Baca> {
       appBar: AppBar(
         title: Text(widget.comicTitle),
       ),
-      body: FutureBuilder<List<Content>>(
-        future: _comicPages,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No pages found'));
-          } else {
-            final pages = snapshot.data!;
-            return ListView.builder(
-              itemCount: pages.length,
-              itemBuilder: (context, index) {
-                final page = pages[index];
-                return Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.memory(
-                      base64Decode(page.gambar!.split(',').last),
-                      fit: BoxFit.fitWidth,
-                    ),
-                  ),
-                );
-              },
-            );
-          }
-        },
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? Center(child: Text('Error: $_errorMessage'))
+              : ListView.builder(
+                  itemCount: _comicPages.length,
+                  itemBuilder: (context, index) {
+                    final page = _comicPages[index];
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.memory(
+                          base64Decode(page.gambar!.split(',').last),
+                          fit: BoxFit.fitWidth,
+                        ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }
