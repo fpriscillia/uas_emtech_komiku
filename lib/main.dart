@@ -9,6 +9,7 @@ import 'package:uas_emtech_comic/screen/komiksaya.dart';
 import 'package:uas_emtech_comic/screen/login.dart';
 import 'package:http/http.dart' as http;
 import 'package:uas_emtech_comic/screen/tambahKomik.dart';
+import 'package:uas_emtech_comic/screen/updatekomik.dart';
 
 
 String active_user = "";
@@ -53,6 +54,7 @@ class MyApp extends StatelessWidget {
         'komiksaya': (context) => const KomikSaya(),
         'kategori': (context) => const Kategori(),
         'tambah': (context) => const TambahKomik(),
+        // 'update': (context) => const UpdateKomic(comicId: comicId),
       },
     );
   }
@@ -222,6 +224,13 @@ class _MyHomePageState extends State<MyHomePage> {
               leading: const Icon(Icons.add_sharp),
               onTap: () {
                 Navigator.popAndPushNamed(context, "tambah");
+              },
+            ),
+            ListTile(
+              title: const Text("Update Komik"),
+              leading: const Icon(Icons.system_update),
+              onTap: () {
+                Navigator.popAndPushNamed(context, "update");
               },
             ),
             ListTile(
