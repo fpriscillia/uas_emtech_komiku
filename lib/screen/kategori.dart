@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:uas_emtech_comic/class/kategoriKomik.dart';
+import 'package:uas_emtech_comic/main.dart';
 
 class Kategori extends StatefulWidget {
   const Kategori({super.key});
@@ -58,7 +59,17 @@ class _KategoriState extends State<Kategori> {
                 bottom: BorderSide(color: Colors.black12, width: 1.0),
               ),
               title: Text(listKategori[index].category_name),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MyHomePage(
+                      title: "Kategori ${listKategori[index].category_name}",
+                      idCategory: listKategori[index].id,
+                    ),
+                  ),
+                );
+              },
             );
           }),
     );

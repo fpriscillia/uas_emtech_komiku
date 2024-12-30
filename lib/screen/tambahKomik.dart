@@ -94,10 +94,8 @@ class _TambahKomikState extends State<TambahKomik> {
     });
 
     try {
-      // Kirim data komik terlebih dahulu
       final bytes = await _selectedImage!.readAsBytes();
       final base64Image = base64Encode(bytes);
-      print(base64Image);
       final prefs = await SharedPreferences.getInstance();
 
       final response = await http.post(
@@ -109,6 +107,7 @@ class _TambahKomikState extends State<TambahKomik> {
           'author_name': _pengarangController.text,
           'author_id': prefs.getString('user_id'),
           'category_id': _selectedKategori,
+          'rating': "0",
           'gambar': base64Image,
         },
       );

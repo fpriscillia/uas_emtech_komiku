@@ -11,18 +11,18 @@ import 'package:http/http.dart' as http;
 import 'package:uas_emtech_comic/screen/tambahKomik.dart';
 import 'package:uas_emtech_comic/screen/updatekomik.dart';
 
-
 String active_user = "";
 Future<String> checkUser() async {
   final prefs = await SharedPreferences.getInstance();
   String user_id = prefs.getString("user_id") ?? '';
-  return user_id;
+  String user_name = prefs.getString("user_name") ?? '';
+  return "$user_id//$user_name";
 }
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   checkUser().then((String result) {
-    if (result == '')
+    if (result == '//')
       runApp(MyLogin());
     else {
       active_user = result;
@@ -49,19 +49,18 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Komiku'),
+      home: const MyHomePage(title: 'Komiku App'),
       routes: {
         'komiksaya': (context) => const KomikSaya(),
         'kategori': (context) => const Kategori(),
         'tambah': (context) => const TambahKomik(),
-        // 'update': (context) => const UpdateKomic(comicId: comicId),
       },
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({super.key, required this.title, this.idCategory});
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -73,6 +72,7 @@ class MyHomePage extends StatefulWidget {
   // always marked "final".
 
   final String title;
+  final int? idCategory;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -80,6 +80,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late Future<List<Comic>> _comics;
+  String _txtcari = "";
 
   @override
   void initState() {
@@ -87,21 +88,29 @@ class _MyHomePageState extends State<MyHomePage> {
     _comics = getComic();
   }
 
-  Future<List<Comic>>getComic() async {
+  Future<List<Comic>> getComic() async {
     try {
-      final response = await http.get(
-          Uri.parse("https://ubaya.xyz/flutter/160721022/uas_komiku/comiclist.php"));
+      int? idcategory = widget.idCategory;
+      final response = await http.post(
+        Uri.parse(
+            "https://ubaya.xyz/flutter/160721022/uas_komiku/comiclist.php"),
+        body: idcategory == null
+            ? {'cari': _txtcari}
+            : {'cari': _txtcari, 'category_id': idcategory.toString()},
+      );
       if (response.statusCode == 200) {
         Map json = jsonDecode(response.body);
         if (json['result'] == 'success' && json['data'] != null) {
-          return (json['data'] as List).map((json) => Comic.fromJson(json)).toList();
+          return (json['data'] as List)
+              .map((json) => Comic.fromJson(json))
+              .toList();
         } else {
           return [];
         }
       } else {
         throw Exception('Failed to read API');
       }
-    }catch(e){
+    } catch (e) {
       throw Exception("Error fetching comics: $e");
     }
   }
@@ -116,22 +125,24 @@ class _MyHomePageState extends State<MyHomePage> {
       body: ListView(
         padding: EdgeInsets.symmetric(horizontal: 16.0),
         children: [
-          TextFormField(
-            decoration: const InputDecoration(
-              icon: Icon(Icons.search),
-              labelText: 'Cari Judul...',
+          if (widget.idCategory == null)
+            TextFormField(
+              decoration: const InputDecoration(
+                icon: Icon(Icons.search),
+                labelText: 'Cari Judul...',
+              ),
+              onFieldSubmitted: (value) {
+                setState(() {
+                  _txtcari = value;
+                  _comics = getComic();
+                });
+              },
             ),
-            onFieldSubmitted: (value) {
-              // _txtcari = value;
-              // bacaData();
-            },
-          ),
           Container(
             height: MediaQuery.of(context).size.height - 100,
             child: FutureBuilder<List<Comic>>(
               future: _comics,
-              builder: (context,snapshot)
-              {
+              builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -141,10 +152,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
                 // Jika data kosong
                 else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text("No comics available"));
+                  return const Center(child: Text("Belum ada komik"));
                 }
                 final comics = snapshot.data!;
-                return  ListView.builder(
+                return ListView.builder(
                   itemCount: comics.length,
                   itemBuilder: (BuildContext ctxt, int index) {
                     final comic = comics[index];
@@ -153,10 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => Baca(
-                                comicId: comic.id, // Kirim comic.id ke halaman ReadComic
-                                comicTitle: comic.title, // Kirim comic.title ke halaman ReadComic
-                              ),
+                              builder: (context) => Baca(comic: comic),
                             ),
                           );
                         },
@@ -169,21 +177,25 @@ class _MyHomePageState extends State<MyHomePage> {
                           child: Column(
                             children: [
                               ClipRRect(
-                                borderRadius:
-                                BorderRadius.vertical(top: Radius.circular(15)),
-                                child: Image.memory(
-                                  base64Decode(comic.gambar!), // Decode base64 menjadi gambar
-                                  height: 180,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                )
-                              ),
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(15)),
+                                  child: Image.memory(
+                                    base64Decode(comic
+                                        .gambar!), // Decode base64 menjadi gambar
+                                    height: 180,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                  )),
                               ListTile(
                                 title: Text(comic.title,
                                     style: TextStyle(
-                                        fontSize: 20, fontWeight: FontWeight.bold)),
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold)),
                                 subtitle: Text(
-                                    comic.description!),
+                                  comic.description!,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),
@@ -200,8 +212,8 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           children: [
             UserAccountsDrawerHeader(
-              accountName: Text("user_name"),
-              accountEmail: Text("user_id"),
+              accountName: Text(active_user.split('//')[1]),
+              accountEmail: Text(active_user.split('//')[0]),
               currentAccountPicture: CircleAvatar(
                   backgroundImage: NetworkImage("https://i.pravatar.cc/150")),
             ),
@@ -210,6 +222,9 @@ class _MyHomePageState extends State<MyHomePage> {
               leading: const Icon(Icons.book),
               onTap: () {
                 Navigator.popAndPushNamed(context, "komiksaya");
+                setState(() {
+                  _comics = getComic();
+                });
               },
             ),
             ListTile(
@@ -224,13 +239,9 @@ class _MyHomePageState extends State<MyHomePage> {
               leading: const Icon(Icons.add_sharp),
               onTap: () {
                 Navigator.popAndPushNamed(context, "tambah");
-              },
-            ),
-            ListTile(
-              title: const Text("Update Komik"),
-              leading: const Icon(Icons.system_update),
-              onTap: () {
-                Navigator.popAndPushNamed(context, "update");
+                setState(() {
+                  _comics = getComic();
+                });
               },
             ),
             ListTile(
