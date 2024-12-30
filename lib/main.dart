@@ -34,6 +34,7 @@ void main() {
 void doLogout() async {
   final prefs = await SharedPreferences.getInstance();
   prefs.remove("user_id");
+  prefs.remove("user_name");
   main();
 }
 
