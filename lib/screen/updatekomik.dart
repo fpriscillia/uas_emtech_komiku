@@ -286,6 +286,7 @@ class _UpdateComicState extends State<UpdateKomik> {
         //         'Error updating content: ${contentJsonResponse['message']}');
         //   }
         // }
+        getContentList(widget.comicId);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('konten berhasil diperbarui!')),
