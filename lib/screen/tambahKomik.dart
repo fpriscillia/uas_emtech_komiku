@@ -142,7 +142,7 @@ class _TambahKomikState extends State<TambahKomik> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Komik dan konten berhasil ditambahkan!')),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, 'update');
       } else {
         throw Exception(jsonResponse['message']);
       }

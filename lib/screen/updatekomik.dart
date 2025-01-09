@@ -76,6 +76,7 @@ class _UpdateComicState extends State<UpdateKomik> {
       });
     }
   }
+
   Future<void> _pickContent() async {
     final pickedFiles = await _picker.pickMultiImage();
     if (pickedFiles != null) {
@@ -219,13 +220,14 @@ class _UpdateComicState extends State<UpdateKomik> {
 
           // Jika semua proses berhasil
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Komik dan konten berhasil ditambahkan!')),
+            const SnackBar(content: Text('Komik dan Konten berhasil diperbarui!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Komik berhasil diperbarui!')),
           );
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Komik berhasil diperbarui!')),
-        );
-        Navigator.pop(context, 'update');
+        getContentList(widget.comicId);
       } else {
         throw Exception(jsonResponse['message']);
       }
@@ -350,9 +352,10 @@ class _UpdateComicState extends State<UpdateKomik> {
         //         'Error updating content: ${contentJsonResponse['message']}');
         //   }
         // }
+        getContentList(widget.comicId);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Komik berhasil diperbarui!')),
+          const SnackBar(content: Text('Konten berhasil dihapus!')),
         );
       } else {
         throw Exception(jsonResponse['message']);
@@ -373,6 +376,12 @@ class _UpdateComicState extends State<UpdateKomik> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Update Komik'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context, 'update');
+          },
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

@@ -57,6 +57,12 @@ class _KomikSayaState extends State<KomikSaya> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: const Text("Komik Karya Saya"),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context, 'update');
+          },
+        ),
       ),
       body: ListView(
         padding: EdgeInsets.symmetric(horizontal: 16.0),

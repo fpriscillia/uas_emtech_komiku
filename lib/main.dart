@@ -221,11 +221,13 @@ class _MyHomePageState extends State<MyHomePage> {
             ListTile(
               title: const Text("Komik Saya"),
               leading: const Icon(Icons.book),
-              onTap: () {
-                Navigator.popAndPushNamed(context, "komiksaya");
-                setState(() {
-                  _comics = getComic();
-                });
+              onTap: () async {
+                final result = Navigator.popAndPushNamed(context, "komiksaya");
+                if (result != null) {
+                  setState(() {
+                    _comics = getComic();
+                  });
+                }
               },
             ),
             ListTile(
@@ -238,11 +240,13 @@ class _MyHomePageState extends State<MyHomePage> {
             ListTile(
               title: const Text("Tambah Komik"),
               leading: const Icon(Icons.add_sharp),
-              onTap: () {
-                Navigator.popAndPushNamed(context, "tambah");
-                setState(() {
-                  _comics = getComic();
-                });
+              onTap: () async {
+                final result = Navigator.popAndPushNamed(context, "tambah");
+                if (result != null) {
+                  setState(() {
+                    _comics = getComic();
+                  });
+                }
               },
             ),
             ListTile(
