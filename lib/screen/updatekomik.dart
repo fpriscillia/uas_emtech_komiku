@@ -31,10 +31,14 @@ class _UpdateComicState extends State<UpdateKomik> {
   final ImagePicker _picker = ImagePicker();
   List<Content> _comicPages = [];
   String? _errorMessage;
-  final List<File> _selectedContent = [];
+  List<File> _selectedContent = [];
   File? _selectedUpdateContent;
 
-
+  late String _initialJudul;
+  late String _initialDeskripsi;
+  late String _initialTanggalRilis;
+  late String _initialPengarang;
+  late int _initialKategori;
 
   @override
   void initState() {
@@ -55,9 +59,7 @@ class _UpdateComicState extends State<UpdateKomik> {
         final jsonData = json.decode(response.body);
         if (jsonData['result'] == 'success') {
           setState(() {
-            _comicPages = (jsonData['data'] as List)
-                .map((item) => Content.fromJson(item))
-                .toList();
+            _comicPages = (jsonData['data'] as List).map((item) => Content.fromJson(item)).toList();
             _isLoading = false;
           });
         } else {
@@ -85,6 +87,7 @@ class _UpdateComicState extends State<UpdateKomik> {
       });
     }
   }
+
   Future<void> _pickUpdateContent() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -94,7 +97,6 @@ class _UpdateComicState extends State<UpdateKomik> {
     }
   }
 
-
   Future<void> _loadComicData() async {
     setState(() {
       _isLoading = true;
@@ -102,8 +104,7 @@ class _UpdateComicState extends State<UpdateKomik> {
 
     try {
       final response = await http.post(
-        Uri.parse(
-            "https://ubaya.xyz/flutter/160721022/uas_komiku/detailcomic.php"),
+        Uri.parse("https://ubaya.xyz/flutter/160721022/uas_komiku/detailcomic.php"),
         body: {'id': widget.comicId.toString()},
       );
 
@@ -117,6 +118,12 @@ class _UpdateComicState extends State<UpdateKomik> {
           _pengarangController.text = data['author_name'];
           _selectedKategori = data['category_id'];
           _initialPoster = data['gambar'].split(',')[1];
+
+          _initialJudul = data['title'];
+          _initialDeskripsi = data['description'];
+          _initialTanggalRilis = data['release_date'];
+          _initialPengarang = data['author_name'];
+          _initialKategori = data['category_id'];
         });
       } else {
         throw Exception(jsonResponse['message']);
@@ -133,8 +140,7 @@ class _UpdateComicState extends State<UpdateKomik> {
   }
 
   Future<String> fetchKategori() async {
-    final response = await http.get(Uri.parse(
-        "https://ubaya.xyz/flutter/160721022/uas_komiku/categorylist.php"));
+    final response = await http.get(Uri.parse("https://ubaya.xyz/flutter/160721022/uas_komiku/categorylist.php"));
     if (response.statusCode == 200) {
       return response.body;
     } else {
@@ -173,63 +179,71 @@ class _UpdateComicState extends State<UpdateKomik> {
     });
 
     try {
-      final posterBytes =
-          _selectedPoster != null ? await _selectedPoster!.readAsBytes() : null;
-      final posterBase64 = (posterBytes != null
-          ? base64Encode(posterBytes)
-          : (_initialPoster != null ? _initialPoster : null));
+      final posterBytes = _selectedPoster != null ? await _selectedPoster!.readAsBytes() : null;
+      final posterBase64 = (posterBytes != null ? base64Encode(posterBytes) : (_initialPoster != null ? _initialPoster : null));
 
-      final response = await http.post(
-        Uri.parse(
-            "https://ubaya.xyz/flutter/160721022/uas_komiku/updatecomic.php"),
-        body: {
-          'comic_id': widget.comicId.toString(),
-          'title': _judulController.text,
-          'description': _deskripsiController.text,
-          'release_date': _tanggalRilisController.text,
-          'author_name': _pengarangController.text,
-          'category_id': _selectedKategori.toString(),
-          'poster': posterBase64,
-        },
-      );
 
-      final jsonResponse = json.decode(response.body);
-      if (jsonResponse['result'] == 'success') {
-        if (_selectedContent.isNotEmpty) {
-          final comicId = widget.comicId;
+      final isUnchanged = _judulController.text == _initialJudul ||
+          _deskripsiController.text == _initialDeskripsi ||
+          _tanggalRilisController.text == _initialTanggalRilis ||
+          _pengarangController.text == _initialPengarang ||
+          _selectedKategori == _initialKategori ||
+          _selectedPoster == null;
 
-          // Kirim setiap konten yang dipilih ke server
-          for (var content in _selectedContent) {
-            final contentBytes = await content.readAsBytes();
-            final contentBase64Image = base64Encode(contentBytes);
+      if (!isUnchanged) {
+        final response = await http.post(
+          Uri.parse("https://ubaya.xyz/flutter/160721022/uas_komiku/updatecomic.php"),
+          body: {
+            'comic_id': widget.comicId.toString(),
+            'title': _judulController.text,
+            'description': _deskripsiController.text,
+            'release_date': _tanggalRilisController.text,
+            'author_name': _pengarangController.text,
+            'category_id': _selectedKategori.toString(),
+            'poster': posterBase64,
+          },
+        );
 
-            final contentResponse = await http.post(
-              Uri.parse("https://ubaya.xyz/flutter/160721022/uas_komiku/addcontent.php"),
-              body: {
-                'comic_id': comicId.toString(),
-                'gambar': contentBase64Image,
-              },
-            );
-
-            final contentJsonResponse = json.decode(contentResponse.body);
-
-            if (contentJsonResponse['result'] != 'success') {
-              throw Exception('Gagal menginput konten: ${contentJsonResponse['message']}');
-            }
-          }
-
-          // Jika semua proses berhasil
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Komik dan Konten berhasil diperbarui!')),
-          );
+        final jsonResponse = json.decode(response.body);
+        if (jsonResponse['result'] == 'success') {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Komik berhasil diperbarui!')));
+          getContentList(widget.comicId);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Komik berhasil diperbarui!')),
-          );
+          throw Exception(jsonResponse['message']);
         }
+      }
+      if (_selectedContent.isNotEmpty) {
+        final comicId = widget.comicId;
+
+        // Kirim setiap konten yang dipilih ke server
+        for (var content in _selectedContent) {
+          final contentBytes = await content.readAsBytes();
+          final contentBase64Image = base64Encode(contentBytes);
+
+          final contentResponse = await http.post(
+            Uri.parse("https://ubaya.xyz/flutter/160721022/uas_komiku/addcontent.php"),
+            body: {
+              'comic_id': comicId.toString(),
+              'gambar': contentBase64Image,
+            },
+          );
+
+          final contentJsonResponse = json.decode(contentResponse.body);
+
+          if (contentJsonResponse['result'] != 'success') {
+            throw Exception('Gagal menginput konten: ${contentJsonResponse['message']}');
+          }
+        }
+
+        // Jika semua proses berhasil
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Komik dan Konten berhasil diperbarui!')),
+        );
+
         getContentList(widget.comicId);
-      } else {
-        throw Exception(jsonResponse['message']);
+        setState(() {
+          _selectedContent.clear();
+        });
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -252,15 +266,11 @@ class _UpdateComicState extends State<UpdateKomik> {
     });
 
     try {
-      final posterBytes =
-          _selectedUpdateContent != null ? await _selectedUpdateContent!.readAsBytes() : null;
-      final posterBase64 = (posterBytes != null
-          ? base64Encode(posterBytes)
-          : (_initialPoster != null ? _initialPoster : null));
+      final posterBytes = _selectedUpdateContent != null ? await _selectedUpdateContent!.readAsBytes() : null;
+      final posterBase64 = (posterBytes != null ? base64Encode(posterBytes) : (_initialPoster != null ? _initialPoster : null));
 
       final response = await http.post(
-        Uri.parse(
-            "https://ubaya.xyz/flutter/160721022/uas_komiku/updatecontent.php"),
+        Uri.parse("https://ubaya.xyz/flutter/160721022/uas_komiku/updatecontent.php"),
         body: {
           'comic_id': id.toString(),
           'gambar': posterBase64,
@@ -307,6 +317,7 @@ class _UpdateComicState extends State<UpdateKomik> {
       });
     }
   }
+
   Future<void> _deleteContent(int id) async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -317,15 +328,11 @@ class _UpdateComicState extends State<UpdateKomik> {
     });
 
     try {
-      final posterBytes =
-          _selectedPoster != null ? await _selectedPoster!.readAsBytes() : null;
-      final posterBase64 = (posterBytes != null
-          ? base64Encode(posterBytes)
-          : (_initialPoster != null ? _initialPoster : null));
+      final posterBytes = _selectedPoster != null ? await _selectedPoster!.readAsBytes() : null;
+      final posterBase64 = (posterBytes != null ? base64Encode(posterBytes) : (_initialPoster != null ? _initialPoster : null));
 
       final response = await http.post(
-        Uri.parse(
-            "https://ubaya.xyz/flutter/160721022/uas_komiku/deletecontent.php"),
+        Uri.parse("https://ubaya.xyz/flutter/160721022/uas_komiku/deletecontent.php"),
         body: {
           'id': id.toString(),
         },
@@ -393,8 +400,7 @@ class _UpdateComicState extends State<UpdateKomik> {
                   children: [
                     TextFormField(
                       controller: _judulController,
-                      decoration:
-                          const InputDecoration(labelText: 'Judul Komik'),
+                      decoration: const InputDecoration(labelText: 'Judul Komik'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Judul tidak boleh kosong';
@@ -428,15 +434,13 @@ class _UpdateComicState extends State<UpdateKomik> {
                           lastDate: DateTime.now(),
                         );
                         if (date != null) {
-                          _tanggalRilisController.text =
-                              date.toIso8601String().split('T').first;
+                          _tanggalRilisController.text = date.toIso8601String().split('T').first;
                         }
                       },
                     ),
                     TextFormField(
                       controller: _pengarangController,
-                      decoration:
-                          const InputDecoration(labelText: 'Nama Pengarang'),
+                      decoration: const InputDecoration(labelText: 'Nama Pengarang'),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Nama pengarang tidak boleh kosong';
@@ -447,8 +451,7 @@ class _UpdateComicState extends State<UpdateKomik> {
                     const SizedBox(height: 16.0),
                     DropdownButtonFormField<int>(
                       value: _selectedKategori,
-                      decoration:
-                          const InputDecoration(labelText: 'Kategori Komik'),
+                      decoration: const InputDecoration(labelText: 'Kategori Komik'),
                       items: listKategori.map((e) {
                         return DropdownMenuItem(
                           value: e.id,
@@ -480,11 +483,7 @@ class _UpdateComicState extends State<UpdateKomik> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: _selectedPoster == null
-                            ? (_initialPoster == null
-                                ? const Center(
-                                    child: Text('Klik untuk memilih COVER'))
-                                : Image.memory(base64Decode(_initialPoster!),
-                                    fit: BoxFit.cover))
+                            ? (_initialPoster == null ? const Center(child: Text('Klik untuk memilih COVER')) : Image.memory(base64Decode(_initialPoster!), fit: BoxFit.cover))
                             : Image.file(_selectedPoster!, fit: BoxFit.cover),
                       ),
                     ),
@@ -501,20 +500,20 @@ class _UpdateComicState extends State<UpdateKomik> {
                         child: _selectedContent.isEmpty
                             ? const Center(child: Text('TAMBAH KONTEN'))
                             : ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _selectedContent.length,
-                          itemBuilder: (context, index) {
-                            return Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Image.file(
-                                _selectedContent[index],
-                                fit: BoxFit.cover,
-                                width: 100,
-                                height: 100,
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _selectedContent.length,
+                                itemBuilder: (context, index) {
+                                  return Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Image.file(
+                                      _selectedContent[index],
+                                      fit: BoxFit.cover,
+                                      width: 100,
+                                      height: 100,
+                                    ),
+                                  );
+                                },
                               ),
-                            );
-                          },
-                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -544,7 +543,7 @@ class _UpdateComicState extends State<UpdateKomik> {
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
                                   ElevatedButton.icon(
-                                    onPressed: () async{
+                                    onPressed: () async {
                                       await _pickUpdateContent();
                                       _changeContent(_comicPages[index].id);
                                     },
